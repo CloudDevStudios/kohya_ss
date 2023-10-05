@@ -14,7 +14,7 @@ from .common_gui import get_folder_path
 
 def dataset_balancing(concept_repeats, folder, insecure):
 
-    if not concept_repeats > 0:
+    if concept_repeats <= 0:
         # Display an error message if the total number of repeats is not a valid integer
         msgbox('Please enter a valid integer for the total number of repeats.')
         return
@@ -50,30 +50,25 @@ def dataset_balancing(concept_repeats, folder, insecure):
                     f'No images of type .jpg, .jpeg, .png, .gif, .webp were found in {os.listdir(os.path.join(folder, subdir))}'
                 )
 
-            # Check if the subdirectory name starts with a number inside braces,
-            # indicating that the repeats value should be multiplied
-            match = re.match(r'^\{(\d+\.?\d*)\}', subdir)
-            if match:
+            if match := re.match(r'^\{(\d+\.?\d*)\}', subdir):
                 # Multiply the repeats value by the number inside the braces
-                if not images == 0:
-                    repeats = max(
+                repeats = (
+                    max(
                         1,
                         round(
                             concept_repeats / images * float(match.group(1))
                         ),
                     )
-                else:
-                    repeats = 0
+                    if images != 0
+                    else 0
+                )
                 subdir = subdir[match.end() :]
+            elif images != 0:
+                repeats = max(1, round(concept_repeats / images))
             else:
-                if not images == 0:
-                    repeats = max(1, round(concept_repeats / images))
-                else:
-                    repeats = 0
+                repeats = 0
 
-            # Check if the subdirectory name already has a number at the beginning
-            match = re.match(r'^\d+_', subdir)
-            if match:
+            if match := re.match(r'^\d+_', subdir):
                 # Replace the existing number with the new number
                 old_name = os.path.join(folder, subdir)
                 new_name = os.path.join(
@@ -95,13 +90,12 @@ def dataset_balancing(concept_repeats, folder, insecure):
 
 def warning(insecure):
     if insecure:
-        if boolbox(
-            f'WARNING!!! You have asked to rename non kohya_ss <num>_<text> folders...\n\nAre you sure you want to do that?',
-            choices=('Yes, I like danger', 'No, get me out of here'),
-        ):
-            return True
-        else:
-            return False
+        return bool(
+            boolbox(
+                f'WARNING!!! You have asked to rename non kohya_ss <num>_<text> folders...\n\nAre you sure you want to do that?',
+                choices=('Yes, I like danger', 'No, get me out of here'),
+            )
+        )
 
 
 def gradio_dataset_balancing_tab(headless=False):

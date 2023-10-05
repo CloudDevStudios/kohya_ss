@@ -125,8 +125,6 @@ def UI(**kwargs):
             gradio_merge_lycoris_tab(headless=headless)
             gradio_resize_lora_tab(headless=headless)
 
-    # Show the interface
-    launch_kwargs = {}
     username = kwargs.get('username')
     password = kwargs.get('password')
     server_port = kwargs.get('server_port', 0)
@@ -134,7 +132,7 @@ def UI(**kwargs):
     share = kwargs.get('share', False)
     server_name = kwargs.get('listen')
 
-    launch_kwargs['server_name'] = server_name
+    launch_kwargs = {'server_name': server_name}
     if username and password:
         launch_kwargs['auth'] = (username, password)
     if server_port > 0:

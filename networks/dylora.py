@@ -75,7 +75,7 @@ class DyLoRAModule(torch.nn.Module):
 
         # specify the dynamic rank
         trainable_rank = random.randint(0, self.lora_dim - 1)
-        trainable_rank = trainable_rank - trainable_rank % self.unit  # make sure the rank is a multiple of unit
+        trainable_rank -= trainable_rank % self.unit
 
         # 一部のパラメータを固定して、残りのパラメータを学習する
         for i in range(0, trainable_rank):
@@ -125,8 +125,12 @@ class DyLoRAModule(torch.nn.Module):
         if self.is_conv2d and not self.is_conv2d_3x3:
             lora_B_weight = lora_B_weight.unsqueeze(-1).unsqueeze(-1)
 
-        sd[self.lora_name + ".lora_down.weight"] = lora_A_weight if keep_vars else lora_A_weight.detach()
-        sd[self.lora_name + ".lora_up.weight"] = lora_B_weight if keep_vars else lora_B_weight.detach()
+        sd[f"{self.lora_name}.lora_down.weight"] = (
+            lora_A_weight if keep_vars else lora_A_weight.detach()
+        )
+        sd[f"{self.lora_name}.lora_up.weight"] = (
+            lora_B_weight if keep_vars else lora_B_weight.detach()
+        )
 
         i = 0
         while True:
@@ -142,8 +146,8 @@ class DyLoRAModule(torch.nn.Module):
 
     def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
         # 通常のLoRAと同じstate dictを読み込めるようにする：この方法はchatGPTに聞いた
-        lora_A_weight = state_dict.pop(self.lora_name + ".lora_down.weight", None)
-        lora_B_weight = state_dict.pop(self.lora_name + ".lora_up.weight", None)
+        lora_A_weight = state_dict.pop(f"{self.lora_name}.lora_down.weight", None)
+        lora_B_weight = state_dict.pop(f"{self.lora_name}.lora_up.weight", None)
 
         if lora_A_weight is None or lora_B_weight is None:
             if strict:
@@ -178,16 +182,9 @@ def create_network(multiplier, network_dim, network_alpha, vae, text_encoder, un
     if conv_dim is not None:
         conv_dim = int(conv_dim)
         assert conv_dim == network_dim, "conv_dim must be same as network_dim"
-        if conv_alpha is None:
-            conv_alpha = 1.0
-        else:
-            conv_alpha = float(conv_alpha)
-    if unit is not None:
-        unit = int(unit)
-    else:
-        unit = 1
-
-    network = DyLoRANetwork(
+        conv_alpha = 1.0 if conv_alpha is None else float(conv_alpha)
+    unit = int(unit) if unit is not None else 1
+    return DyLoRANetwork(
         text_encoder,
         unet,
         multiplier=multiplier,
@@ -197,7 +194,6 @@ def create_network(multiplier, network_dim, network_alpha, vae, text_encoder, un
         unit=unit,
         varbose=True,
     )
-    return network
 
 
 # Create network from weights for inference, weights are not loaded here (because can be merged)
@@ -226,7 +222,7 @@ def create_network_from_weights(multiplier, file, vae, text_encoder, unet, weigh
             # print(lora_name, value.size(), dim)
 
     # support old LoRA without alpha
-    for key in modules_dim.keys():
+    for key in modules_dim:
         if key not in modules_alpha:
             modules_alpha = modules_dim[key]
 
@@ -267,11 +263,11 @@ class DyLoRANetwork(torch.nn.Module):
         self.apply_to_conv = apply_to_conv
 
         if modules_dim is not None:
-            print(f"create LoRA network from weights")
+            print("create LoRA network from weights")
         else:
             print(f"create LoRA network. base dim (rank): {lora_dim}, alpha: {alpha}, unit: {unit}")
             if self.apply_to_conv:
-                print(f"apply LoRA to Conv2d with kernel size (3,3).")
+                print("apply LoRA to Conv2d with kernel size (3,3).")
 
         # create module instances
         def create_modules(is_unet, root_module: torch.nn.Module, target_replace_modules) -> List[DyLoRAModule]:
@@ -285,7 +281,7 @@ class DyLoRANetwork(torch.nn.Module):
                         is_conv2d_1x1 = is_conv2d and child_module.kernel_size == (1, 1)
 
                         if is_linear or is_conv2d:
-                            lora_name = prefix + "." + name + "." + child_name
+                            lora_name = f"{prefix}.{name}.{child_name}"
                             lora_name = lora_name.replace(".", "_")
 
                             dim = None
@@ -331,8 +327,7 @@ class DyLoRANetwork(torch.nn.Module):
         else:
             weights_sd = torch.load(file, map_location="cpu")
 
-        info = self.load_state_dict(weights_sd, False)
-        return info
+        return self.load_state_dict(weights_sd, False)
 
     def apply_to(self, text_encoder, unet, apply_text_encoder=True, apply_unet=True):
         if apply_text_encoder:

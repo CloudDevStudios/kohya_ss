@@ -55,7 +55,7 @@ def extract_lora(
     if conv_dim > 0:
         run_cmd += f' --conv_dim {conv_dim}'
     if v2:
-        run_cmd += f' --v2'
+        run_cmd += ' --v2'
 
     print(run_cmd)
 

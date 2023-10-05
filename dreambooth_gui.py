@@ -126,19 +126,19 @@ def save_configuration(
 
     original_file_path = file_path
 
-    save_as_bool = True if save_as.get('label') == 'True' else False
+    save_as_bool = save_as.get('label') == 'True'
 
     if save_as_bool:
         print('Save as...')
         file_path = get_saveasfile_path(file_path)
     else:
         print('Save...')
-        if file_path == None or file_path == '':
+        if file_path is None or file_path == '':
             file_path = get_saveasfile_path(file_path)
 
     # print(file_path)
 
-    if file_path == None or file_path == '':
+    if file_path is None or file_path == '':
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
 
     # Return the values of the variables as a dictionary
@@ -242,14 +242,14 @@ def open_configuration(
     # Get list of function parameters and values
     parameters = list(locals().items())
 
-    ask_for_file = True if ask_for_file.get('label') == 'True' else False
+    ask_for_file = ask_for_file.get('label') == 'True'
 
     original_file_path = file_path
 
     if ask_for_file:
         file_path = get_file_path(file_path)
 
-    if not file_path == '' and not file_path == None:
+    if file_path != '' and file_path is not None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
             my_data = json.load(f)
@@ -261,10 +261,11 @@ def open_configuration(
         my_data = {}
 
     values = [file_path]
-    for key, value in parameters:
-        # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
-        if not key in ['ask_for_file', 'file_path']:
-            values.append(my_data.get(key, value))
+    values.extend(
+        my_data.get(key, value)
+        for key, value in parameters
+        if key not in ['ask_for_file', 'file_path']
+    )
     return tuple(values)
 
 
@@ -340,7 +341,7 @@ def train_model(
     use_wandb,
     wandb_api_key,
 ):
-    headless_bool = True if headless.get('label') == 'True' else False
+    headless_bool = headless.get('label') == 'True'
 
     if pretrained_model_name_or_path == '':
         output_message(
@@ -475,11 +476,13 @@ def train_model(
     # calculate max_train_steps
     max_train_steps = int(
         math.ceil(
-            float(total_steps)
-            / int(train_batch_size)
-            / int(gradient_accumulation_steps)
-            * int(epoch)
-            * int(reg_factor)
+            (
+                float(total_steps)
+                / int(train_batch_size)
+                / int(gradient_accumulation_steps)
+                * int(epoch)
+                * reg_factor
+            )
         )
     )
     print(f'max_train_steps = {max_train_steps}')
@@ -487,7 +490,7 @@ def train_model(
     # calculate stop encoder training
     if int(stop_text_encoder_training_pct) == -1:
         stop_text_encoder_training = -1
-    elif stop_text_encoder_training_pct == None:
+    elif stop_text_encoder_training_pct is None:
         stop_text_encoder_training = 0
     else:
         stop_text_encoder_training = math.ceil(
@@ -495,7 +498,7 @@ def train_model(
         )
     print(f'stop_text_encoder_training = {stop_text_encoder_training}')
 
-    lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    lr_warmup_steps = round(float(int(lr_warmup) * max_train_steps / 100))
     print(f'lr_warmup_steps = {lr_warmup_steps}')
 
     run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_db.py"'
@@ -517,27 +520,27 @@ def train_model(
         run_cmd += f' --reg_data_dir="{reg_data_dir}"'
     run_cmd += f' --resolution={max_resolution}'
     run_cmd += f' --output_dir="{output_dir}"'
-    if not logging_dir == '':
+    if logging_dir != '':
         run_cmd += f' --logging_dir="{logging_dir}"'
-    if not stop_text_encoder_training == 0:
+    if stop_text_encoder_training != 0:
         run_cmd += (
             f' --stop_text_encoder_training={stop_text_encoder_training}'
         )
-    if not save_model_as == 'same as source model':
+    if save_model_as != 'same as source model':
         run_cmd += f' --save_model_as={save_model_as}'
     # if not resume == '':
     #     run_cmd += f' --resume={resume}'
-    if not float(prior_loss_weight) == 1.0:
+    if float(prior_loss_weight) != 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
-    if not vae == '':
+    if vae != '':
         run_cmd += f' --vae="{vae}"'
-    if not output_name == '':
+    if output_name != '':
         run_cmd += f' --output_name="{output_name}"'
     if int(max_token_length) > 75:
         run_cmd += f' --max_token_length={max_token_length}'
-    if not max_train_epochs == '':
+    if max_train_epochs != '':
         run_cmd += f' --max_train_epochs="{max_train_epochs}"'
-    if not max_data_loader_n_workers == '':
+    if max_data_loader_n_workers != '':
         run_cmd += (
             f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
         )
@@ -1008,8 +1011,6 @@ def UI(**kwargs):
                 headless=headless,
             )
 
-    # Show the interface
-    launch_kwargs = {}
     username = kwargs.get('username')
     password = kwargs.get('password')
     server_port = kwargs.get('server_port', 0)
@@ -1017,7 +1018,7 @@ def UI(**kwargs):
     share = kwargs.get('share', False)
     server_name = kwargs.get('listen')
 
-    launch_kwargs['server_name'] = server_name
+    launch_kwargs = {'server_name': server_name}
     if username and password:
         launch_kwargs['auth'] = (username, password)
     if server_port > 0:

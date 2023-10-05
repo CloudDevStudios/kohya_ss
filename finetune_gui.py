@@ -125,19 +125,19 @@ def save_configuration(
 
     original_file_path = file_path
 
-    save_as_bool = True if save_as.get('label') == 'True' else False
+    save_as_bool = save_as.get('label') == 'True'
 
     if save_as_bool:
         print('Save as...')
         file_path = get_saveasfile_path(file_path)
     else:
         print('Save...')
-        if file_path == None or file_path == '':
+        if file_path is None or file_path == '':
             file_path = get_saveasfile_path(file_path)
 
     # print(file_path)
 
-    if file_path == None or file_path == '':
+    if file_path is None or file_path == '':
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
 
     # Return the values of the variables as a dictionary
@@ -247,14 +247,14 @@ def open_configuration(
     # Get list of function parameters and values
     parameters = list(locals().items())
 
-    ask_for_file = True if ask_for_file.get('label') == 'True' else False
+    ask_for_file = ask_for_file.get('label') == 'True'
 
     original_file_path = file_path
 
     if ask_for_file:
         file_path = get_file_path(file_path)
 
-    if not file_path == '' and not file_path == None:
+    if file_path != '' and file_path is not None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
             my_data = json.load(f)
@@ -266,10 +266,11 @@ def open_configuration(
         my_data = {}
 
     values = [file_path]
-    for key, value in parameters:
-        # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
-        if not key in ['ask_for_file', 'file_path']:
-            values.append(my_data.get(key, value))
+    values.extend(
+        my_data.get(key, value)
+        for key, value in parameters
+        if key not in ['ask_for_file', 'file_path']
+    )
     return tuple(values)
 
 
@@ -351,7 +352,7 @@ def train_model(
     use_wandb,
     wandb_api_key,
 ):
-    headless_bool = True if headless.get('label') == 'True' else False
+    headless_bool = headless.get('label') == 'True'
 
     if check_if_model_exist(
         output_name, output_dir, save_model_as, headless_bool
@@ -383,13 +384,13 @@ def train_model(
 
         run_cmd = f'{PYTHON} finetune/merge_captions_to_metadata.py'
         if caption_extension == '':
-            run_cmd += f' --caption_extension=".caption"'
+            run_cmd += ' --caption_extension=".caption"'
         else:
             run_cmd += f' --caption_extension={caption_extension}'
         run_cmd += f' "{image_folder}"'
         run_cmd += f' "{train_dir}/{caption_metadata_filename}"'
         if full_path:
-            run_cmd += f' --full_path'
+            run_cmd += ' --full_path'
 
         print(run_cmd)
 
@@ -414,7 +415,7 @@ def train_model(
         # if flip_aug:
         #     run_cmd += f' --flip_aug'
         if full_path:
-            run_cmd += f' --full_path'
+            run_cmd += ' --full_path'
 
         print(run_cmd)
 
@@ -435,7 +436,7 @@ def train_model(
     )
     print(f'image_num = {image_num}')
 
-    repeats = int(image_num) * int(dataset_repeats)
+    repeats = image_num * int(dataset_repeats)
     print(f'repeats = {str(repeats)}')
 
     # calculate max_train_steps
@@ -454,7 +455,7 @@ def train_model(
 
     print(f'max_train_steps = {max_train_steps}')
 
-    lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    lr_warmup_steps = round(float(int(lr_warmup) * max_train_steps / 100))
     print(f'lr_warmup_steps = {lr_warmup_steps}')
 
     run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "./fine_tune.py"'
@@ -475,7 +476,7 @@ def train_model(
         run_cmd += f' --in_json="{train_dir}/{caption_metadata_filename}"'
     run_cmd += f' --train_data_dir="{image_folder}"'
     run_cmd += f' --output_dir="{output_dir}"'
-    if not logging_dir == '':
+    if logging_dir != '':
         run_cmd += f' --logging_dir="{logging_dir}"'
     run_cmd += f' --dataset_repeats={dataset_repeats}'
     run_cmd += f' --learning_rate={learning_rate}'
@@ -485,7 +486,7 @@ def train_model(
     run_cmd += f' --min_bucket_reso={min_bucket_reso}'
     run_cmd += f' --max_bucket_reso={max_bucket_reso}'
 
-    if not save_model_as == 'same as source model':
+    if save_model_as != 'same as source model':
         run_cmd += f' --save_model_as={save_model_as}'
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
@@ -493,7 +494,7 @@ def train_model(
     #     run_cmd += ' --save_state'
     # if not resume == '':
     #     run_cmd += f' --resume={resume}'
-    if not output_name == '':
+    if output_name != '':
         run_cmd += f' --output_name="{output_name}"'
     if int(max_token_length) > 75:
         run_cmd += f' --max_token_length={max_token_length}'
