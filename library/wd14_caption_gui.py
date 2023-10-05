@@ -29,7 +29,7 @@ def caption_images(
         return
 
     print(f'Captioning files in {train_data_dir}...')
-    run_cmd = f'accelerate launch "./finetune/tag_images_by_wd14_tagger.py"'
+    run_cmd = 'accelerate launch "./finetune/tag_images_by_wd14_tagger.py"'
     run_cmd += f' --batch_size={int(batch_size)}'
     run_cmd += f' --general_threshold={general_threshold}'
     run_cmd += f' --character_threshold={character_threshold}'
@@ -40,15 +40,15 @@ def caption_images(
     )
 
     if recursive:
-        run_cmd += f' --recursive'
+        run_cmd += ' --recursive'
     if debug:
-        run_cmd += f' --debug'
+        run_cmd += ' --debug'
     if replace_underscores:
-        run_cmd += f' --remove_underscore'
+        run_cmd += ' --remove_underscore'
     if frequency_tags:
-        run_cmd += f' --frequency_tags'
+        run_cmd += ' --frequency_tags'
 
-    if not undesired_tags == '':
+    if undesired_tags != '':
         run_cmd += f' --undesired_tags="{undesired_tags}"'
     run_cmd += f' "{train_data_dir}"'
 

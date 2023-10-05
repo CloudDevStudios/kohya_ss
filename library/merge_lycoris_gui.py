@@ -33,7 +33,7 @@ def merge_lycoris(
     run_cmd += f' --device {device}'
     run_cmd += f' --dtype {dtype}'
     if is_v2:
-        run_cmd += f' --is_v2'
+        run_cmd += ' --is_v2'
 
     print(run_cmd)
 

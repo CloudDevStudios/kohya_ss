@@ -126,7 +126,7 @@ def parse_prompt_attention(text):
     for pos in square_brackets:
         multiply_range(pos, square_bracket_multiplier)
 
-    if len(res) == 0:
+    if not res:
         res = [["", 1.0]]
 
     # merge runs of identical weights
@@ -216,51 +216,50 @@ def get_unweighted_text_embeddings(
     it should be split into chunks and sent to the text encoder individually.
     """
     max_embeddings_multiples = (text_input.shape[1] - 2) // (chunk_length - 2)
-    if max_embeddings_multiples > 1:
-        text_embeddings = []
-        for i in range(max_embeddings_multiples):
-            # extract the i-th chunk
-            text_input_chunk = text_input[:, i * (chunk_length - 2) : (i + 1) * (chunk_length - 2) + 2].clone()
+    if max_embeddings_multiples <= 1:
+        return text_encoder(text_input)[0]
+    text_embeddings = []
+    for i in range(max_embeddings_multiples):
+        # extract the i-th chunk
+        text_input_chunk = text_input[:, i * (chunk_length - 2) : (i + 1) * (chunk_length - 2) + 2].clone()
 
-            # cover the head and the tail by the starting and the ending tokens
-            text_input_chunk[:, 0] = text_input[0, 0]
-            if pad == eos:  # v1
-                text_input_chunk[:, -1] = text_input[0, -1]
-            else:  # v2
-                for j in range(len(text_input_chunk)):
-                    if text_input_chunk[j, -1] != eos and text_input_chunk[j, -1] != pad:  # 最後に普通の文字がある
-                        text_input_chunk[j, -1] = eos
-                    if text_input_chunk[j, 1] == pad:  # BOSだけであとはPAD
-                        text_input_chunk[j, 1] = eos
-
-            if clip_skip is None or clip_skip == 1:
-                text_embedding = text_encoder(text_input_chunk)[0]
-            else:
-                enc_out = text_encoder(text_input_chunk, output_hidden_states=True, return_dict=True)
-                text_embedding = enc_out["hidden_states"][-clip_skip]
-                text_embedding = text_encoder.text_model.final_layer_norm(text_embedding)
-
-            # cover the head and the tail by the starting and the ending tokens
-            text_input_chunk[:, 0] = text_input[0, 0]
+        # cover the head and the tail by the starting and the ending tokens
+        text_input_chunk[:, 0] = text_input[0, 0]
+        if pad == eos:  # v1
             text_input_chunk[:, -1] = text_input[0, -1]
-            text_embedding = text_encoder(text_input_chunk, attention_mask=None)[0]
+        else:  # v2
+            for j in range(len(text_input_chunk)):
+                if text_input_chunk[j, -1] not in [eos, pad]:  # 最後に普通の文字がある
+                    text_input_chunk[j, -1] = eos
+                if text_input_chunk[j, 1] == pad:  # BOSだけであとはPAD
+                    text_input_chunk[j, 1] = eos
 
+        if clip_skip is None or clip_skip == 1:
+            text_embedding = text_encoder(text_input_chunk)[0]
+        else:
+            enc_out = text_encoder(text_input_chunk, output_hidden_states=True, return_dict=True)
+            text_embedding = enc_out["hidden_states"][-clip_skip]
+            text_embedding = text_encoder.text_model.final_layer_norm(text_embedding)
+
+        # cover the head and the tail by the starting and the ending tokens
+        text_input_chunk[:, 0] = text_input[0, 0]
+        text_input_chunk[:, -1] = text_input[0, -1]
+        text_embedding = text_encoder(text_input_chunk, attention_mask=None)[0]
+
+        if i == 0:
             if no_boseos_middle:
-                if i == 0:
-                    # discard the ending token
-                    text_embedding = text_embedding[:, :-1]
-                elif i == max_embeddings_multiples - 1:
-                    # discard the starting token
-                    text_embedding = text_embedding[:, 1:]
-                else:
-                    # discard both starting and ending tokens
-                    text_embedding = text_embedding[:, 1:-1]
+                # discard the ending token
+                text_embedding = text_embedding[:, :-1]
+        elif i == max_embeddings_multiples - 1:
+            if no_boseos_middle:
+                # discard the starting token
+                text_embedding = text_embedding[:, 1:]
+        elif no_boseos_middle:
+            # discard both starting and ending tokens
+            text_embedding = text_embedding[:, 1:-1]
 
-            text_embeddings.append(text_embedding)
-        text_embeddings = torch.concat(text_embeddings, axis=1)
-    else:
-        text_embeddings = text_encoder(text_input)[0]
-    return text_embeddings
+        text_embeddings.append(text_embedding)
+    return torch.concat(text_embeddings, axis=1)
 
 
 def get_weighted_text_embeddings(
@@ -299,7 +298,7 @@ def get_weighted_text_embeddings(
     prompt_tokens, prompt_weights = get_prompts_with_weights(tokenizer, prompt, max_length - 2)
 
     # round up the longest length of tokens to a multiple of (model_max_length - 2)
-    max_length = max([len(token) for token in prompt_tokens])
+    max_length = max(len(token) for token in prompt_tokens)
 
     max_embeddings_multiples = min(
         max_embeddings_multiples,

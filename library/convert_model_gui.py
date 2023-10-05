@@ -57,13 +57,10 @@ def convert_model(
         print('SD v2 model specified. Setting --v2 parameter')
         run_cmd += ' --v2'
 
-    if not target_save_precision_type == 'unspecified':
+    if target_save_precision_type != 'unspecified':
         run_cmd += f' --{target_save_precision_type}'
 
-    if (
-        target_model_type == 'diffuser'
-        or target_model_type == 'diffuser_safetensors'
-    ):
+    if target_model_type in ['diffuser', 'diffuser_safetensors']:
         run_cmd += f' --reference_model="{source_model_type}"'
 
     if target_model_type == 'diffuser_safetensors':
@@ -79,21 +76,16 @@ def convert_model(
 
     run_cmd += f' "{source_model_input}"'
 
-    if (
-        target_model_type == 'diffuser'
-        or target_model_type == 'diffuser_safetensors'
-    ):
+    if target_model_type in ['diffuser', 'diffuser_safetensors']:
         target_model_path = os.path.join(
             target_model_folder_input, target_model_name_input
         )
-        run_cmd += f' "{target_model_path}"'
     else:
         target_model_path = os.path.join(
             target_model_folder_input,
             f'{target_model_name_input}.{target_model_type}',
         )
-        run_cmd += f' "{target_model_path}"'
-
+    run_cmd += f' "{target_model_path}"'
     print(run_cmd)
 
     # Run the command
@@ -102,10 +94,7 @@ def convert_model(
     else:
         subprocess.run(run_cmd)
 
-    if (
-        not target_model_type == 'diffuser'
-        or target_model_type == 'diffuser_safetensors'
-    ):
+    if target_model_type != 'diffuser':
 
         v2_models = [
             'stabilityai/stable-diffusion-2-1-base',
@@ -121,20 +110,14 @@ def convert_model(
                 target_model_folder_input, f'{target_model_name_input}.yaml'
             )
             print(f'Saving v2-inference.yaml as {inference_file}')
-            shutil.copy(
-                f'./v2_inference/v2-inference.yaml',
-                f'{inference_file}',
-            )
+            shutil.copy('./v2_inference/v2-inference.yaml', f'{inference_file}')
 
         if str(source_model_type) in v_parameterization:
             inference_file = os.path.join(
                 target_model_folder_input, f'{target_model_name_input}.yaml'
             )
             print(f'Saving v2-inference-v.yaml as {inference_file}')
-            shutil.copy(
-                f'./v2_inference/v2-inference-v.yaml',
-                f'{inference_file}',
-            )
+            shutil.copy('./v2_inference/v2-inference-v.yaml', f'{inference_file}')
 
 
 #   parser = argparse.ArgumentParser()

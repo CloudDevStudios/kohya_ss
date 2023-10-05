@@ -78,11 +78,7 @@ def split(args):
     comment = metadata.get("ss_training_comment", "")
     for state_dict, new_rank, new_alpha in split_models:
         # update metadata
-        if metadata is None:
-            new_metadata = {}
-        else:
-            new_metadata = metadata.copy()
-
+        new_metadata = {} if metadata is None else metadata.copy()
         new_metadata["ss_training_comment"] = f"split from DyLoRA, rank {original_rank} to {new_rank}; {comment}"
         new_metadata["ss_network_dim"] = str(new_rank)
         # new_metadata["ss_network_alpha"] = str(new_alpha.float().numpy())
@@ -92,7 +88,7 @@ def split(args):
         metadata["sshs_legacy_hash"] = legacy_hash
 
         filename, ext = os.path.splitext(args.save_to)
-        model_file_name = filename + f"-{new_rank:04d}{ext}"
+        model_file_name = f"{filename}-{new_rank:04d}{ext}"
 
         print(f"saving model to: {model_file_name}")
         save_to_file(model_file_name, state_dict, new_metadata)

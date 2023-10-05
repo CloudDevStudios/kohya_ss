@@ -41,11 +41,11 @@ def caption_images(
     run_cmd += f' --max_length="{int(max_length)}"'
     run_cmd += f' --min_length="{int(min_length)}"'
     if beam_search:
-        run_cmd += f' --beam_search'
+        run_cmd += ' --beam_search'
     if caption_file_ext != '':
         run_cmd += f' --caption_extension="{caption_file_ext}"'
     run_cmd += f' "{train_data_dir}"'
-    run_cmd += f' --caption_weights="https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_large_caption.pth"'
+    run_cmd += ' --caption_weights="https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_large_caption.pth"'
 
     print(run_cmd)
 

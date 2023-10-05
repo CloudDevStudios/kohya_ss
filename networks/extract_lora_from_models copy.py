@@ -34,9 +34,7 @@ def svd(args):
       return torch.float
     if p == 'fp16':
       return torch.float16
-    if p == 'bf16':
-      return torch.bfloat16
-    return None
+    return torch.bfloat16 if p == 'bf16' else None
 
   save_dtype = str_to_dtype(args.save_precision)
 
@@ -49,7 +47,8 @@ def svd(args):
   lora_network_o = lora.create_network(1.0, args.dim, args.dim * 1.5, None, text_encoder_o, unet_o)
   lora_network_t = lora.create_network(1.0, args.dim, args.dim * 1.5, None, text_encoder_t, unet_t)
   assert len(lora_network_o.text_encoder_loras) == len(
-      lora_network_t.text_encoder_loras), f"model version is different (SD1.x vs SD2.x) / それぞれのモデルのバージョンが違います（SD1.xベースとSD2.xベース） "
+      lora_network_t.text_encoder_loras
+  ), "model version is different (SD1.x vs SD2.x) / それぞれのモデルのバージョンが違います（SD1.xベースとSD2.xベース） "
 
   # get diffs
   diffs = {}
@@ -121,7 +120,7 @@ def svd(args):
   #     U = U @ torch.diag(S)
 
   #     Vh = Vh[:rank, :]
-      
+
   #     # create new tensors directly from the numpy arrays
   #     U = torch.as_tensor(U)
   #     Vh = torch.as_tensor(Vh)
@@ -132,7 +131,7 @@ def svd(args):
 
   #     # U = U.clamp(low_val, hi_val)
   #     # Vh = Vh.clamp(low_val, hi_val)
-      
+
   #     # # soft thresholding
   #     # alpha = S[-1] / 1000.0  # adjust this parameter as needed
   #     # U = torch.sign(U) * torch.nn.functional.relu(torch.abs(U) - alpha)

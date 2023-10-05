@@ -26,11 +26,12 @@ def check_model(model):
 
 def verify_conditions(sd_model, lora_models):
     lora_models_count = sum(1 for model in lora_models if model)
-    if sd_model and lora_models_count >= 1:
-        return True
-    elif not sd_model and lora_models_count >= 2:
-        return True
-    return False
+    return bool(
+        sd_model
+        and lora_models_count >= 1
+        or not sd_model
+        and lora_models_count >= 2
+    )
 
 
 def merge_lora(
@@ -69,15 +70,14 @@ def merge_lora(
     run_cmd += f' --precision {precision}'
     run_cmd += f' --save_to "{save_to}"'
 
-    # Create a space-separated string of non-empty models (from the second element onwards), enclosed in double quotes
-    models_cmd = ' '.join([f'"{model}"' for model in lora_models if model])
-
     # Create a space-separated string of non-zero ratios corresponding to non-empty LoRa models
     valid_ratios = [ratios[i] for i, model in enumerate(lora_models) if model]
-    ratios_cmd = ' '.join([str(ratio) for ratio in valid_ratios])
-
-    if models_cmd:
+    if models_cmd := ' '.join(
+        [f'"{model}"' for model in lora_models if model]
+    ):
         run_cmd += f' --models {models_cmd}'
+        ratios_cmd = ' '.join([str(ratio) for ratio in valid_ratios])
+
         run_cmd += f' --ratios {ratios_cmd}'
 
     print(run_cmd)

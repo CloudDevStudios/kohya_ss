@@ -30,7 +30,7 @@ def preprocess_image(image):
     image = image[:, :, ::-1]  # RGB->BGR
 
     # pad to square
-    size = max(image.shape[0:2])
+    size = max(image.shape[:2])
     pad_x = size - image.shape[1]
     pad_y = size - image.shape[0]
     pad_l = pad_x // 2
@@ -103,7 +103,7 @@ def main(args):
 
     with open(os.path.join(args.model_dir, CSV_FILE), "r", encoding="utf-8") as f:
         reader = csv.reader(f)
-        l = [row for row in reader]
+        l = list(reader)
         header = l[0]  # tag_id,name,category,count
         rows = l[1:]
     assert header[0] == "tag_id" and header[1] == "name" and header[2] == "category", f"unexpected csv format: {header}"
@@ -147,7 +147,7 @@ def main(args):
 
                     if tag_name not in undesired_tags:
                         tag_freq[tag_name] = tag_freq.get(tag_name, 0) + 1
-                        general_tag_text += ", " + tag_name
+                        general_tag_text += f", {tag_name}"
                         combined_tags.append(tag_name)
                 elif i >= len(general_tags) and p >= args.character_threshold:
                     tag_name = character_tags[i - len(general_tags)]
@@ -156,7 +156,7 @@ def main(args):
 
                     if tag_name not in undesired_tags:
                         tag_freq[tag_name] = tag_freq.get(tag_name, 0) + 1
-                        character_tag_text += ", " + tag_name
+                        character_tag_text += f", {tag_name}"
                         combined_tags.append(tag_name)
 
             # 先頭のカンマを取る

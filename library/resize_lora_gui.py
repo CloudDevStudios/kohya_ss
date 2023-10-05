@@ -38,7 +38,7 @@ def resize_lora(
             )
             return
 
-    if dynamic_method == 'sv_fro' or dynamic_method == 'sv_cumulative':
+    if dynamic_method in ['sv_fro', 'sv_cumulative']:
         if float(dynamic_param) < 0 or float(dynamic_param) > 1:
             msgbox(
                 f'Dynamic parameter for {dynamic_method} need to be between 0 and 1...'
@@ -58,11 +58,11 @@ def resize_lora(
     run_cmd += f' --model "{model}"'
     run_cmd += f' --new_rank {new_rank}'
     run_cmd += f' --device {device}'
-    if not dynamic_method == 'None':
+    if dynamic_method != 'None':
         run_cmd += f' --dynamic_method {dynamic_method}'
         run_cmd += f' --dynamic_param {dynamic_param}'
     if verbose:
-        run_cmd += f' --verbose'
+        run_cmd += ' --verbose'
 
     print(run_cmd)
 

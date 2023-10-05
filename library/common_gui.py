@@ -54,7 +54,7 @@ def check_if_model_exist(
                 )
                 return True
     elif save_model_as in ['ckpt', 'safetensors']:
-        ckpt_file = os.path.join(output_dir, output_name + '.' + save_model_as)
+        ckpt_file = os.path.join(output_dir, f'{output_name}.{save_model_as}')
         if os.path.isfile(ckpt_file):
             msg = f'A model with the same file name {ckpt_file} already exists. Do you want to overwrite it?'
             if not easygui.ynbox(msg, 'Overwrite Existing Model?'):
@@ -147,7 +147,7 @@ def get_file_path(
     file_path='', default_extension='.json', extension_name='Config files'
 ):
     if (
-        not any(var in os.environ for var in ENV_EXCLUSION)
+        all(var not in os.environ for var in ENV_EXCLUSION)
         and sys.platform != 'darwin'
     ):
         current_file_path = file_path
@@ -185,7 +185,7 @@ def get_file_path(
 
 def get_any_file_path(file_path=''):
     if (
-        not any(var in os.environ for var in ENV_EXCLUSION)
+        all(var not in os.environ for var in ENV_EXCLUSION)
         and sys.platform != 'darwin'
     ):
         current_file_path = file_path
@@ -230,7 +230,7 @@ def remove_doublequote(file_path):
 
 def get_folder_path(folder_path=''):
     if (
-        not any(var in os.environ for var in ENV_EXCLUSION)
+        all(var not in os.environ for var in ENV_EXCLUSION)
         and sys.platform != 'darwin'
     ):
         current_folder_path = folder_path
@@ -253,7 +253,7 @@ def get_saveasfile_path(
     file_path='', defaultextension='.json', extension_name='Config files'
 ):
     if (
-        not any(var in os.environ for var in ENV_EXCLUSION)
+        all(var not in os.environ for var in ENV_EXCLUSION)
         and sys.platform != 'darwin'
     ):
         current_file_path = file_path
@@ -277,13 +277,13 @@ def get_saveasfile_path(
 
         # print(save_file_path)
 
-        if save_file_path == None:
+        if save_file_path is None:
             file_path = current_file_path
         else:
             print(save_file_path.name)
             file_path = save_file_path.name
 
-        # print(file_path)
+            # print(file_path)
 
     return file_path
 
@@ -292,7 +292,7 @@ def get_saveasfilename_path(
     file_path='', extensions='*', extension_name='Config files'
 ):
     if (
-        not any(var in os.environ for var in ENV_EXCLUSION)
+        all(var not in os.environ for var in ENV_EXCLUSION)
         and sys.platform != 'darwin'
     ):
         current_file_path = file_path
@@ -314,12 +314,7 @@ def get_saveasfilename_path(
         )
         root.destroy()
 
-        if save_file_path == '':
-            file_path = current_file_path
-        else:
-            # print(save_file_path)
-            file_path = save_file_path
-
+        file_path = current_file_path if save_file_path == '' else save_file_path
     return file_path
 
 
@@ -340,7 +335,7 @@ def add_pre_postfix(
         caption_file_ext (str, optional): Extension of the caption files.
     """
 
-    if prefix == '' and postfix == '':
+    if not prefix and not postfix:
         return
 
     image_extensions = ('.jpg', '.jpeg', '.png', '.webp')
@@ -380,10 +375,7 @@ def has_ext_files(folder_path: str, file_extension: str) -> bool:
     Returns:
         bool: True if files with the specified extension are found, False otherwise.
     """
-    for file in os.listdir(folder_path):
-        if file.endswith(file_extension):
-            return True
-    return False
+    return any(file.endswith(file_extension) for file in os.listdir(folder_path))
 
 
 def find_replace(
@@ -409,7 +401,7 @@ def find_replace(
         )
         return
 
-    if search_text == '':
+    if not search_text:
         return
 
     caption_files = [
@@ -429,13 +421,12 @@ def find_replace(
 
 
 def color_aug_changed(color_aug):
-    if color_aug:
-        msgbox(
-            'Disabling "Cache latent" because "Color augmentation" has been selected...'
-        )
-        return gr.Checkbox.update(value=False, interactive=False)
-    else:
+    if not color_aug:
         return gr.Checkbox.update(value=True, interactive=True)
+    msgbox(
+        'Disabling "Cache latent" because "Color augmentation" has been selected...'
+    )
+    return gr.Checkbox.update(value=False, interactive=False)
 
 
 def save_inference_file(output_dir, v2, v_parameterization, output_name):
@@ -457,7 +448,7 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                         f'Saving v2-inference-v.yaml as {output_dir}/{file_name}.yaml'
                     )
                     shutil.copy(
-                        f'./v2_inference/v2-inference-v.yaml',
+                        './v2_inference/v2-inference-v.yaml',
                         f'{output_dir}/{file_name}.yaml',
                     )
                 elif v2:
@@ -465,7 +456,7 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                         f'Saving v2-inference.yaml as {output_dir}/{file_name}.yaml'
                     )
                     shutil.copy(
-                        f'./v2_inference/v2-inference.yaml',
+                        './v2_inference/v2-inference.yaml',
                         f'{output_dir}/{file_name}.yaml',
                     )
 
@@ -531,7 +522,7 @@ def set_model_list(
     v_parameterization,
 ):
 
-    if not pretrained_model_name_or_path in ALL_PRESET_MODELS:
+    if pretrained_model_name_or_path not in ALL_PRESET_MODELS:
         model_list = 'custom'
     else:
         model_list = pretrained_model_name_or_path
@@ -822,65 +813,55 @@ def gradio_training(
 
 def run_cmd_training(**kwargs):
     run_cmd = ''
-    
-    learning_rate = kwargs.get("learning_rate", "")
-    if learning_rate:
+
+    if learning_rate := kwargs.get("learning_rate", ""):
         run_cmd += f' --learning_rate="{learning_rate}"'
-    
+
     lr_scheduler = kwargs.get("lr_scheduler", "")
     if lr_scheduler:
         run_cmd += f' --lr_scheduler="{lr_scheduler}"'
-    
-    lr_warmup_steps = kwargs.get("lr_warmup_steps", "")
-    if lr_warmup_steps:
+
+    if lr_warmup_steps := kwargs.get("lr_warmup_steps", ""):
         if lr_scheduler == 'constant':
             print('Can\'t use LR warmup with LR Scheduler constant... ignoring...')
         else:
             run_cmd += f' --lr_warmup_steps="{lr_warmup_steps}"'
-    
-    train_batch_size = kwargs.get("train_batch_size", "")
-    if train_batch_size:
+
+    if train_batch_size := kwargs.get("train_batch_size", ""):
         run_cmd += f' --train_batch_size="{train_batch_size}"'
-    
-    max_train_steps = kwargs.get("max_train_steps", "")
-    if max_train_steps:
+
+    if max_train_steps := kwargs.get("max_train_steps", ""):
         run_cmd += f' --max_train_steps="{max_train_steps}"'
-    
-    save_every_n_epochs = kwargs.get("save_every_n_epochs")
-    if save_every_n_epochs:
+
+    if save_every_n_epochs := kwargs.get("save_every_n_epochs"):
         run_cmd += f' --save_every_n_epochs="{int(save_every_n_epochs)}"'
-    
-    mixed_precision = kwargs.get("mixed_precision", "")
-    if mixed_precision:
+
+    if mixed_precision := kwargs.get("mixed_precision", ""):
         run_cmd += f' --mixed_precision="{mixed_precision}"'
-    
-    save_precision = kwargs.get("save_precision", "")
-    if save_precision:
+
+    if save_precision := kwargs.get("save_precision", ""):
         run_cmd += f' --save_precision="{save_precision}"'
-    
+
     seed = kwargs.get("seed", "")
     if seed != '':
         run_cmd += f' --seed="{seed}"'
-    
-    caption_extension = kwargs.get("caption_extension", "")
-    if caption_extension:
+
+    if caption_extension := kwargs.get("caption_extension", ""):
         run_cmd += f' --caption_extension="{caption_extension}"'
-    
-    cache_latents = kwargs.get('cache_latents')
-    if cache_latents:
+
+    if cache_latents := kwargs.get('cache_latents'):
         run_cmd += ' --cache_latents'
-    
-    cache_latents_to_disk = kwargs.get('cache_latents_to_disk')
-    if cache_latents_to_disk:
+
+    if cache_latents_to_disk := kwargs.get('cache_latents_to_disk'):
         run_cmd += ' --cache_latents_to_disk'
-    
+
     optimizer_type = kwargs.get("optimizer", "AdamW")
     run_cmd += f' --optimizer_type="{optimizer_type}"'
-    
+
     optimizer_args = kwargs.get("optimizer_args", "")
     if optimizer_args != '':
         run_cmd += f' --optimizer_args {optimizer_args}'
-    
+
     return run_cmd
 
 
@@ -1099,112 +1080,111 @@ def gradio_advanced_training(headless=False):
 
 def run_cmd_advanced_training(**kwargs):
     run_cmd = ''
-    
-    max_train_epochs = kwargs.get("max_train_epochs", "")
-    if max_train_epochs:
+
+    if max_train_epochs := kwargs.get("max_train_epochs", ""):
         run_cmd += f' --max_train_epochs={max_train_epochs}'
-        
-    max_data_loader_n_workers = kwargs.get("max_data_loader_n_workers", "")
-    if max_data_loader_n_workers:
+
+    if max_data_loader_n_workers := kwargs.get(
+        "max_data_loader_n_workers", ""
+    ):
         run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
-    
+
     max_token_length = int(kwargs.get("max_token_length", 75))
     if max_token_length > 75:
         run_cmd += f' --max_token_length={max_token_length}'
-        
+
     clip_skip = int(kwargs.get("clip_skip", 1))
     if clip_skip > 1:
         run_cmd += f' --clip_skip={clip_skip}'
-        
-    resume = kwargs.get("resume", "")
-    if resume:
+
+    if resume := kwargs.get("resume", ""):
         run_cmd += f' --resume="{resume}"'
-        
+
     keep_tokens = int(kwargs.get("keep_tokens", 0))
     if keep_tokens > 0:
         run_cmd += f' --keep_tokens="{keep_tokens}"'
-        
+
     caption_dropout_every_n_epochs = int(kwargs.get("caption_dropout_every_n_epochs", 0))
     if caption_dropout_every_n_epochs > 0:
         run_cmd += f' --caption_dropout_every_n_epochs="{caption_dropout_every_n_epochs}"'
-    
+
     caption_dropout_rate = float(kwargs.get("caption_dropout_rate", 0))
     if caption_dropout_rate > 0:
         run_cmd += f' --caption_dropout_rate="{caption_dropout_rate}"'
-        
+
     vae_batch_size = int(kwargs.get("vae_batch_size", 0))
     if vae_batch_size > 0:
         run_cmd += f' --vae_batch_size="{vae_batch_size}"'
-        
+
     bucket_reso_steps = int(kwargs.get("bucket_reso_steps", 64))
     run_cmd += f' --bucket_reso_steps={bucket_reso_steps}'
-        
+
     save_every_n_steps = int(kwargs.get("save_every_n_steps", 0))
     if save_every_n_steps > 0:
         run_cmd += f' --save_every_n_steps="{save_every_n_steps}"'
-        
+
     save_last_n_steps = int(kwargs.get("save_last_n_steps", 0))
     if save_last_n_steps > 0:
         run_cmd += f' --save_last_n_steps="{save_last_n_steps}"'
-        
+
     save_last_n_steps_state = int(kwargs.get("save_last_n_steps_state", 0))
     if save_last_n_steps_state > 0:
         run_cmd += f' --save_last_n_steps_state="{save_last_n_steps_state}"'
-        
+
     min_snr_gamma = int(kwargs.get("min_snr_gamma", 0))
     if min_snr_gamma >= 1:
         run_cmd += f' --min_snr_gamma={min_snr_gamma}'
-    
+
     save_state = kwargs.get('save_state')
     if save_state:
         run_cmd += ' --save_state'
-        
+
     mem_eff_attn = kwargs.get('mem_eff_attn')
     if mem_eff_attn:
         run_cmd += ' --mem_eff_attn'
-    
+
     color_aug = kwargs.get('color_aug')
     if color_aug:
         run_cmd += ' --color_aug'
-    
+
     flip_aug = kwargs.get('flip_aug')
     if flip_aug:
         run_cmd += ' --flip_aug'
-    
+
     shuffle_caption = kwargs.get('shuffle_caption')
     if shuffle_caption:
         run_cmd += ' --shuffle_caption'
-    
+
     gradient_checkpointing = kwargs.get('gradient_checkpointing')
     if gradient_checkpointing:
         run_cmd += ' --gradient_checkpointing'
-    
+
     full_fp16 = kwargs.get('full_fp16')
     if full_fp16:
         run_cmd += ' --full_fp16'
-    
+
     xformers = kwargs.get('xformers')
     if xformers:
         run_cmd += ' --xformers'
-    
+
     persistent_data_loader_workers = kwargs.get('persistent_data_loader_workers')
     if persistent_data_loader_workers:
         run_cmd += ' --persistent_data_loader_workers'
-    
+
     bucket_no_upscale = kwargs.get('bucket_no_upscale')
     if bucket_no_upscale:
         run_cmd += ' --bucket_no_upscale'
-    
+
     random_crop = kwargs.get('random_crop')
     if random_crop:
         run_cmd += ' --random_crop'
-        
+
     noise_offset_type = kwargs.get('noise_offset_type', 'Original')
     if noise_offset_type == 'Original':
         noise_offset = float(kwargs.get("noise_offset", 0))
         if noise_offset > 0:
             run_cmd += f' --noise_offset={noise_offset}'
-        
+
         adaptive_noise_scale = float(kwargs.get("adaptive_noise_scale", 0))
         if adaptive_noise_scale != 0 and noise_offset > 0:
             run_cmd += f' --adaptive_noise_scale={adaptive_noise_scale}'
@@ -1212,21 +1192,18 @@ def run_cmd_advanced_training(**kwargs):
         multires_noise_iterations = int(kwargs.get("multires_noise_iterations", 0))
         if multires_noise_iterations > 0:
             run_cmd += f' --multires_noise_iterations="{multires_noise_iterations}"'
-        
+
         multires_noise_discount = float(kwargs.get("multires_noise_discount", 0))
         if multires_noise_discount > 0:
             run_cmd += f' --multires_noise_discount="{multires_noise_discount}"'
-    
-    additional_parameters = kwargs.get("additional_parameters", "")
-    if additional_parameters:
+
+    if additional_parameters := kwargs.get("additional_parameters", ""):
         run_cmd += f' {additional_parameters}'
-    
-    use_wandb = kwargs.get('use_wandb')
-    if use_wandb:
+
+    if use_wandb := kwargs.get('use_wandb'):
         run_cmd += ' --log_with wandb'
-    
-    wandb_api_key = kwargs.get("wandb_api_key", "")
-    if wandb_api_key:
+
+    if wandb_api_key := kwargs.get("wandb_api_key", ""):
         run_cmd += f' --wandb_api_key="{wandb_api_key}"'
-        
+
     return run_cmd

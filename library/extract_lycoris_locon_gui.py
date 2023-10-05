@@ -54,10 +54,10 @@ def extract_lycoris_locon(
 
     run_cmd = f'{PYTHON} "{os.path.join("tools","lycoris_locon_extract.py")}"'
     if is_v2:
-        run_cmd += f' --is_v2'
+        run_cmd += ' --is_v2'
     run_cmd += f' --device {device}'
     run_cmd += f' --mode {mode}'
-    run_cmd += f' --safetensors'
+    run_cmd += ' --safetensors'
     if mode == 'fixed':
         run_cmd += f' --linear_dim {linear_dim}'
         run_cmd += f' --conv_dim {conv_dim}'
@@ -71,10 +71,10 @@ def extract_lycoris_locon(
         run_cmd += f' --linear_quantile {linear_quantile}'
         run_cmd += f' --conv_quantile {conv_quantile}'
     if use_sparse_bias:
-        run_cmd += f' --use_sparse_bias'
+        run_cmd += ' --use_sparse_bias'
     run_cmd += f' --sparsity {sparsity}'
     if disable_cp:
-        run_cmd += f' --disable_cp'
+        run_cmd += ' --disable_cp'
     run_cmd += f' "{base_model}"'
     run_cmd += f' "{db_model}"'
     run_cmd += f' "{output_name}"'
@@ -107,14 +107,7 @@ def update_mode(mode):
     # Create a list of possible mode values
     modes = ['fixed', 'threshold', 'ratio', 'quantile']
 
-    # Initialize an empty list to store visibility updates
-    updates = []
-
-    # Iterate through the possible modes
-    for m in modes:
-        # Add a visibility update for each mode, setting it to True if the input mode matches the current mode in the loop
-        updates.append(gr.Row.update(visible=(mode == m)))
-
+    updates = [gr.Row.update(visible=(mode == m)) for m in modes]
     # Return the visibility updates as a tuple
     return tuple(updates)
 
